@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+
+<head>
+  <meta charset="utf-8" />
+  <title>Piramide Recortada</title>
+  <style>
+    body {
+      margin: 0;
+    }
+  </style>
+</head>
+
+<body>
+  <script type="module">
+    import * as THREE from 'https://sebastiann16.github.io/CompG/three.module.js';
+    import { OrbitControls } from 'https://sebastiann16.github.io/CompG/OrbitControls.js';
+    var WIDTH = window.innerWidth;
+    var HEIGHT = window.innerHeight;
+
+    var renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(WIDTH, HEIGHT);
+    renderer.setClearColor(0xDDDDDD, 0);
+    document.body.appendChild(renderer.domElement);
+
+    var scene = new THREE.Scene();
+
+    var camera = new THREE.PerspectiveCamera(70, WIDTH / HEIGHT);
+    camera.position.z = 25;
+    camera.position.y = 10;
+    scene.add(camera);
+    // Light
+    const ambientLight = new THREE.AmbientLight(0xffffff, 300);
+            scene.add(ambientLight);        
+    var size = 700;
+    var arrowSize = 10;
+    var divisions = 50;
+    var origin = new THREE.Vector3( 0, 0, 0 );
+    var color2 = new THREE.Color( 0x333333 )
+    //Crear la Grilla
+    var gridHelperXZ = new THREE.GridHelper( size, divisions, color2, color2);
+
+    function poligono(nlados, radio) {
+    const vertices = [];
+    const ang = 2*Math.PI/nlados;
+    for (let i=0; i<=nlados; i++) {
+        vertices.push([radio*Math.cos(i*ang), radio*Math.sin(i*ang)]);
+    }
+    return vertices;
+    }
+
+    function piramideRecortada(nlados, radio, altura) {
+    const vertices = [];
+
+    // Calcular el ángulo de cada vértice en el polígono base
+    const angulo = (2 * Math.PI) / nlados;
+
+    // Calcular la altura de cada triángulo de la pirámide
+    const alturaTriangulo = altura / nlados;
+
+    // Generar los vértices de la base del polígono
+    for (let i = 0; i < nlados; i++) {
+        const x = radio * Math.cos(i * angulo);
+        const y = radio * Math.sin(i * angulo);
+        vertices.push([x, y, 0]);
+    }
+
+    // Genera los vértices de la parte superior de la pirámide
+    for (let i = 0; i < nlados; i++) {
+        const x = (radio / 2) * Math.cos(i * angulo + angulo / 2);
+        const y = (radio / 2) * Math.sin(i * angulo + angulo / 2);
+        vertices.push([x, y, altura]);
+    }
+
+    // Genera los triángulos que forman las caras de la pirámide
+    const caras = [];
+    for (let i = 0; i < nlados; i++) {
+        // Triángulo de la base
+        caras.push([i, (i + 1) % nlados, i + nlados]);
+        // Triángulos de las caras laterales
+        caras.push([(i + 1) % nlados, ((i + 1) % nlados) + nlados, i + nlados]);
+        caras.push([i, (i + 1) % nlados, ((i + 1) % nlados) + nlados]);
+    }
+    const piramide = {
+            vertices: vertices,
+            caras: caras
+        };
+
+        return piramide;
+    }
+    const numPiramides = 8;
+    for (let i = 0; i < numPiramides; i++) {
+    // Obtiene los datos de la pirámide
+    const piramideData = piramideRecortada(8, 6, 6);
+
+    // Crea la geometría con BufferGeometry
+    const geometry = new THREE.BufferGeometry();
+    const verticesArray = new Float32Array(piramideData.vertices.length * 3);
+    for (let i = 0; i < piramideData.vertices.length; i++) {
+    verticesArray[i * 3] = piramideData.vertices[i][0];
+    verticesArray[i * 3 + 1] = piramideData.vertices[i][1];
+    verticesArray[i * 3 + 2] = piramideData.vertices[i][2];
+    }
+    // Definir los atributos de la geometría
+    geometry.setAttribute('position', new THREE.BufferAttribute(verticesArray, 3));
+
+    // Crear los indices
+    const indicesArray = [];
+    for (let i = 0; i < piramideData.caras.length; i++) {
+    const cara = piramideData.caras[i];
+    indicesArray.push(cara[0], cara[1], cara[2]);
+    }
+    geometry.setIndex(indicesArray);
+
+    // Genera un color aleatorio
+    const randomColor = Math.random() * 0xffffff;
+    // Crea el material 
+    const material = new THREE.MeshBasicMaterial({ color: randomColor });
+    const mesh = new THREE.Mesh(geometry, material);
+    
+    //Calcula la posición de la pirámide 
+    const distanciaEntrePiramides = 10;
+    const numPiramidesSuperiores = 4;
+    const numPiramidesInferiores = 4;
+    const offsetY = 5; // Ajusta la distancia vertical entre las pirámides
+    let position;
+
+    if (i < numPiramidesSuperiores) {
+        // Posición para las pirámides superiores
+        position = new THREE.Vector3(
+        i * distanciaEntrePiramides,
+        offsetY,
+        0
+        );
+    } else {
+        // Posición para las pirámides inferiores
+        const j = i - numPiramidesSuperiores; 
+        position = new THREE.Vector3(
+        j * distanciaEntrePiramides,
+        -offsetY,
+        0
+        );
+    }
+
+    // Aplicar la posición a la pirámide
+    mesh.position.copy(position);
+    // Rotar la pirámide hacia arriba 
+    mesh.rotation.x = -(Math.PI / 2);
+    
+    // Agregar la pirámide a la escena
+    scene.add(mesh);
+    }
+    scene.add(gridHelperXZ);
+    const controls = new OrbitControls(camera, renderer.domElement);
+    function animate() {
+        requestAnimationFrame(animate);
+        controls.update();
+        renderer.render(scene, camera)
+    }
+    animate();
+    
+  </script>
+</body>
+
+</html>
